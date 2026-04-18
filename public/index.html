@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#1a56db">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Evidencija radnika</title>
+<link rel="manifest" href="/manifest.json">
+<style>
+  :root {
+    --blue: #1a56db; --blue-light: #e8f0fe; --blue-dark: #1341b2;
+    --green: #057a55; --green-light: #def7ec; --green-mid: #31c48d;
+    --amber: #92400e; --amber-light: #fef3c7; --amber-mid: #d97706;
+    --red: #9b1c1c; --red-light: #fde8e8; --red-mid: #e02424;
+    --gray: #374151; --gray-light: #f9fafb; --gray-mid: #6b7280;
+    --border: #e5e7eb; --white: #ffffff;
+    --radius: 12px; --radius-sm: 8px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f3f4f6; color: #111827; min-height: 100vh; }
+  
+  /* ======= LOGIN ======= */
+  #screen-login { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem; }
+  .login-card { background: var(--white); border-radius: 20px; padding: 2rem; width: 100%; max-width: 380px; box-shadow: var(--shadow-md); }
+  .login-logo { width: 56px; height: 56px; background: var(--blue); border-radius: 16px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; }
+  .login-logo svg { width: 28px; height: 28px; fill: white; }
+  .login-title { text-align: center; font-size: 20px; font-weight: 700; color: #111827; margin-bottom: 4px; }
+  .login-sub { text-align: center; font-size: 14px; color: var(--gray-mid); margin-bottom: 1.5rem; }
+  .field { margin-bottom: 1rem; }
+  .field label { display: block; font-size: 13px; font-weight: 500; color: #374151; margin-bottom: 6px; }
+  .field input { width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-size: 15px; outline: none; transition: border 0.2s; background: #fff; color: #111; }
+  .field input:focus { border-color: var(--blue); }
+  .btn-login { width: 100%; padding: 13px; background: var(--blue); color: white; border: none; border-radius: var(--radius-sm); font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 0.5rem; transition: background 0.2s; }
+  .btn-login:hover { background: var(--blue-dark); }
+  .btn-login:active { transform: scale(0.98); }
+  .error-msg { background: var(--red-light); color: var(--red); padding: 10px 14px; border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 1rem; display: none; }
+
+  /* ======= APP SHELL ======= */
+  #app { display: none; min-height: 100vh; flex-direction: column; }
+  .topbar { background: var(--white); border-bottom: 1px solid var(--border); padding: 0 1rem; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
+  .topbar-left { display: flex; align-items: center; gap: 10px; }
+  .topbar-icon { width: 34px; height: 34px; background: var(--blue); border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+  .topbar-icon svg { width: 18px; height: 18px; fill: white; }
+  .topbar-title { font-size: 15px; font-weight: 600; }
+  .topbar-user { font-size: 13px; color: var(--gray-mid); }
+  .btn-logout { padding: 7px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; cursor: pointer; background: white; color: var(--gray); }
+  .btn-logout:hover { background: var(--gray-light); }
+  .content { flex: 1; padding: 1rem; max-width: 640px; margin: 0 auto; width: 100%; }
+
+  /* ======= TABS (admin) ======= */
+  .tabs { display: flex; background: white; border-radius: var(--radius); padding: 4px; margin-bottom: 1rem; border: 1px solid var(--border); }
+  .tab-btn { flex: 1; padding: 9px 8px; border: none; border-radius: var(--radius-sm); font-size: 13px; cursor: pointer; background: transparent; color: var(--gray-mid); font-weight: 500; transition: all 0.15s; }
+  .tab-btn.active { background: var(--blue); color: white; }
+
+  /* ======= RADNIK EKRAN ======= */
+  .hello-card { background: var(--blue); color: white; border-radius: var(--radius); padding: 1.25rem 1.5rem; margin-bottom: 1rem; }
+  .hello-name { font-size: 20px; font-weight: 700; margin-bottom: 2px; }
+  .hello-date { font-size: 13px; opacity: 0.8; }
+  .status-card { background: white; border-radius: var(--radius); padding: 1.25rem; margin-bottom: 1rem; border: 1px solid var(--border); box-shadow: var(--shadow); }
+  .status-label { font-size: 12px; font-weight: 500; color: var(--gray-mid); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; font-size: 14px; font-weight: 600; }
+  .sb-green { background: var(--green-light); color: var(--green); }
+  .sb-amber { background: var(--amber-light); color: var(--amber); }
+  .sb-gray { background: #f3f4f6; color: var(--gray-mid); }
+  .action-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1rem; }
+  .action-btn { padding: 1rem; border-radius: var(--radius); border: 2px solid transparent; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: all 0.15s; }
+  .action-btn svg { width: 28px; height: 28px; }
+  .action-btn:active { transform: scale(0.96); }
+  .abtn-green { background: var(--green-light); color: var(--green); border-color: var(--green-mid); }
+  .abtn-green:hover { background: #c3f0d8; }
+  .abtn-amber { background: var(--amber-light); color: var(--amber); border-color: var(--amber-mid); }
+  .abtn-amber:hover { background: #fde68a; }
+  .abtn-green.selected, .abtn-amber.selected { border-width: 3px; box-shadow: var(--shadow-md); }
+  .upload-card { background: white; border-radius: var(--radius); padding: 1.25rem; border: 1px solid var(--border); margin-bottom: 1rem; }
+  .upload-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
+  .upload-zone { border: 2px dashed var(--border); border-radius: var(--radius-sm); padding: 2rem 1rem; text-align: center; cursor: pointer; transition: all 0.15s; }
+  .upload-zone:hover { border-color: var(--blue); background: var(--blue-light); }
+  .upload-zone svg { width: 36px; height: 36px; fill: var(--gray-mid); margin-bottom: 8px; }
+  .upload-zone p { font-size: 14px; color: var(--gray-mid); }
+  .upload-zone small { font-size: 12px; color: #9ca3af; }
+  input[type=file] { display: none; }
+  .file-preview { display: flex; align-items: center; gap: 10px; background: var(--green-light); padding: 10px 14px; border-radius: var(--radius-sm); margin-top: 10px; }
+  .file-preview svg { width: 20px; height: 20px; fill: var(--green); flex-shrink: 0; }
+  .file-preview span { font-size: 13px; font-weight: 500; color: var(--green); flex: 1; word-break: break-all; }
+  .btn-upload { width: 100%; padding: 12px; background: var(--blue); color: white; border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 10px; display: none; }
+  .btn-upload:disabled { opacity: 0.6; cursor: not-allowed; }
+  .doznake-list { margin-top: 12px; }
+  .doznaka-item { display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--gray-light); border-radius: var(--radius-sm); margin-bottom: 6px; }
+  .doznaka-item svg { width: 18px; height: 18px; fill: var(--blue); flex-shrink: 0; }
+  .doznaka-item a { font-size: 13px; color: var(--blue); text-decoration: none; font-weight: 500; flex: 1; word-break: break-all; }
+  .doznaka-item span { font-size: 11px; color: var(--gray-mid); white-space: nowrap; }
+
+  /* ======= ADMIN PANEL ======= */
+  .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 1rem; }
+  .stat-box { background: white; border-radius: var(--radius-sm); padding: 12px; text-align: center; border: 1px solid var(--border); }
+  .stat-num { font-size: 26px; font-weight: 700; }
+  .stat-lbl { font-size: 11px; color: var(--gray-mid); margin-top: 2px; }
+  .sn-green { color: var(--green); }
+  .sn-amber { color: var(--amber); }
+  .sn-red { color: var(--red); }
+  .date-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 1rem; }
+  .date-bar input[type=date] { flex: 1; padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 14px; background: white; }
+  .btn-reload { padding: 9px 14px; background: white; border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; }
+  .radnik-row { background: white; border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 6px; border: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+  .radnik-av { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+  .av-blue { background: var(--blue-light); color: var(--blue); }
+  .av-green { background: var(--green-light); color: var(--green); }
+  .av-amber { background: var(--amber-light); color: var(--amber); }
+  .av-red { background: var(--red-light); color: var(--red); }
+  .radnik-info { flex: 1; min-width: 0; }
+  .radnik-ime { font-size: 14px; font-weight: 600; }
+  .radnik-sub { font-size: 12px; color: var(--gray-mid); }
+  .pill { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; white-space: nowrap; }
+  .pill-green { background: var(--green-light); color: var(--green); }
+  .pill-amber { background: var(--amber-light); color: var(--amber); }
+  .pill-red { background: var(--red-light); color: var(--red); }
+  .pill-gray { background: #f3f4f6; color: var(--gray-mid); }
+  .expand-btn { width: 28px; height: 28px; border: 1px solid var(--border); border-radius: 6px; background: white; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .expand-content { display: none; padding: 10px 14px 6px; border-top: 1px solid var(--border); }
+  .doznaka-link { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--blue-light); border-radius: var(--radius-sm); margin-bottom: 6px; text-decoration: none; }
+  .doznaka-link svg { width: 16px; height: 16px; fill: var(--blue); flex-shrink: 0; }
+  .doznaka-link span { font-size: 13px; color: var(--blue); font-weight: 500; }
+  .section-hdr { font-size: 14px; font-weight: 700; color: #374151; margin: 1rem 0 0.5rem; }
+  
+  /* Admin - upravljanje radnicima */
+  .add-radnik-form { background: white; border-radius: var(--radius); padding: 1.25rem; border: 1px solid var(--border); margin-bottom: 1rem; }
+  .add-radnik-form h3 { font-size: 15px; font-weight: 600; margin-bottom: 1rem; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .field-sm label { font-size: 12px; font-weight: 500; color: #374151; display: block; margin-bottom: 4px; }
+  .field-sm input, .field-sm select { width: 100%; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-size: 14px; outline: none; background: white; }
+  .field-sm input:focus { border-color: var(--blue); }
+  .btn-add { padding: 10px 18px; background: var(--blue); color: white; border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 10px; width: 100%; }
+  .radnik-manage-row { background: white; border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 6px; border: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+  .btn-del { padding: 5px 12px; background: var(--red-light); color: var(--red); border: 1px solid #fca5a5; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .btn-del:hover { background: #fecaca; }
+
+  /* Export */
+  .export-card { background: white; border-radius: var(--radius); padding: 1.25rem; border: 1px solid var(--border); }
+  .export-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 1rem; }
+  .export-row { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+  .export-row .field-sm { flex: 1; min-width: 120px; }
+  .btn-export { padding: 10px 18px; background: var(--green); color: white; border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+
+  /* Toast */
+  .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: #1f2937; color: white; padding: 10px 20px; border-radius: 20px; font-size: 14px; font-weight: 500; z-index: 999; opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap; }
+  .toast.show { opacity: 1; }
+  
+  /* Loader */
+  .loader { text-align: center; padding: 2rem; color: var(--gray-mid); font-size: 14px; }
+  .loader::before { content: '⏳ '; }
+  .empty-state { text-align: center; padding: 2rem; color: var(--gray-mid); }
+  .empty-state svg { width: 48px; height: 48px; fill: #d1d5db; margin-bottom: 8px; }
+  .empty-state p { font-size: 14px; }
+
+  @media (max-width: 400px) {
+    .action-btns { grid-template-columns: 1fr; }
+    .form-row { grid-template-columns: 1fr; }
+    .stats-row { grid-template-columns: repeat(3, 1fr); }
+    .stat-num { font-size: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="screen-login">
+  <div class="login-card">
+    <div class="login-logo">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
+    </div>
+    <div class="login-title">Evidencija radnika</div>
+    <div class="login-sub">Prijavite se s vašim podacima</div>
+    <div class="error-msg" id="login-error"></div>
+    <div class="field">
+      <label>Korisničko ime</label>
+      <input type="text" id="inp-user" placeholder="npr. ivan.horvat" autocomplete="username" autocapitalize="off">
+    </div>
+    <div class="field">
+      <label>Lozinka</label>
+      <input type="password" id="inp-pass" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn-login" id="btn-login" onclick="doLogin()">Prijava</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-icon">
+        <svg viewBox="0 0 24 24"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>
+      </div>
+      <div>
+        <div class="topbar-title">Evidencija</div>
+        <div class="topbar-user" id="topbar-user"></div>
+      </div>
+    </div>
+    <button class="btn-logout" onclick="doLogout()">Odjava</button>
+  </div>
+
+  <div class="content">
+    <!-- RADNIK VIEW -->
+    <div id="view-radnik" style="display:none;">
+      <div class="hello-card">
+        <div class="hello-name" id="hello-name">Dobro jutro!</div>
+        <div class="hello-date" id="hello-date"></div>
+      </div>
+
+      <div class="status-card">
+        <div class="status-label">Današnji status</div>
+        <div class="status-badge sb-gray" id="status-display">
+          <span>Još niste evidentirani</span>
+        </div>
+        <div style="font-size:12px; color:var(--gray-mid); margin-top:8px;" id="status-time"></div>
+      </div>
+
+      <div class="action-btns">
+        <button class="action-btn abtn-green" id="btn-dosao" onclick="javiSe('dosao')">
+          <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+          Dosao/la sam na posao
+        </button>
+        <button class="action-btn abtn-amber" id="btn-bolovanje" onclick="javiSe('bolovanje')">
+          <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z"/></svg>
+          Na bolovanju sam
+        </button>
+      </div>
+
+      <div class="upload-card" id="upload-section" style="display:none;">
+        <h3>📎 Pošaljite doznaku</h3>
+        <div class="upload-zone" onclick="document.getElementById('file-inp').click()">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/></svg>
+          <p>Kliknite za odabir datoteke</p>
+          <small>PDF, JPG, PNG — max 5 MB</small>
+        </div>
+        <input type="file" id="file-inp" accept=".pdf,.jpg,.jpeg,.png" onchange="onFileSelect(this)">
+        <div class="file-preview" id="file-preview" style="display:none;">
+          <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+          <span id="file-name"></span>
+        </div>
+        <button class="btn-upload" id="btn-upload" onclick="uploadDoznaka()">Pošalji doznaku</button>
+        <div class="doznake-list" id="moje-doznake"></div>
+      </div>
+    </div>
+
+    <!-- ADMIN VIEW -->
+    <div id="view-admin" style="display:none;">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="adminTab('pregled',this)">Pregled</button>
+        <button class="tab-btn" onclick="adminTab('radnici',this)">Radnici</button>
+        <button class="tab-btn" onclick="adminTab('export',this)">Export</button>
+      </div>
+
+      <!-- PREGLED -->
+      <div id="admin-pregled">
+        <div class="stats-row">
+          <div class="stat-box"><div class="stat-num sn-green" id="st-dosli">-</div><div class="stat-lbl">Na poslu</div></div>
+          <div class="stat-box"><div class="stat-num sn-amber" id="st-bolo">-</div><div class="stat-lbl">Bolovanje</div></div>
+          <div class="stat-box"><div class="stat-num sn-red" id="st-nema">-</div><div class="stat-lbl">Nema javljanja</div></div>
+        </div>
+        <div class="date-bar">
+          <input type="date" id="datum-filter" onchange="loadPregled()">
+          <button class="btn-reload" onclick="loadPregled()">↻ Osvježi</button>
+        </div>
+        <div id="pregled-list"><div class="loader">Učitavanje...</div></div>
+      </div>
+
+      <!-- RADNICI -->
+      <div id="admin-radnici" style="display:none;">
+        <div class="add-radnik-form">
+          <h3>Dodaj novog radnika</h3>
+          <div class="form-row">
+            <div class="field-sm"><label>Ime i prezime</label><input type="text" id="new-ime" placeholder="Ivan Horvat"></div>
+            <div class="field-sm"><label>Korisničko ime</label><input type="text" id="new-user" placeholder="ivan.horvat" autocapitalize="off"></div>
+            <div class="field-sm"><label>Lozinka</label><input type="password" id="new-pass" placeholder="min. 6 znakova"></div>
+            <div class="field-sm"><label>Uloga</label>
+              <select id="new-role">
+                <option value="radnik">Radnik</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn-add" onclick="dodajRadnika()">+ Dodaj radnika</button>
+        </div>
+        <div class="section-hdr">Popis radnika</div>
+        <div id="radnici-manage-list"><div class="loader">Učitavanje...</div></div>
+      </div>
+
+      <!-- EXPORT -->
+      <div id="admin-export" style="display:none;">
+        <div class="export-card">
+          <h3>Export u Excel</h3>
+          <p style="font-size:13px; color:var(--gray-mid); margin-bottom:1rem;">Odaberite period za koji želite preuzeti evidenciju.</p>
+          <div class="export-row">
+            <div class="field-sm"><label>Od datuma</label><input type="date" id="exp-od"></div>
+            <div class="field-sm"><label>Do datuma</label><input type="date" id="exp-do"></div>
+            <button class="btn-export" onclick="downloadExport()">⬇ Preuzmi Excel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '';
+var TOKEN = localStorage.getItem('er_token');
+var USER = null;
+var selectedFile = null;
+var currentJavljanjeId = null;
+
+try { USER = JSON.parse(localStorage.getItem('er_user')); } catch(e) {}
+
+function danas() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function formatDatum(d) {
+  if (!d) return '';
+  var dt = new Date(d);
+  return dt.toLocaleDateString('hr-HR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+}
+
+function initials(ime) {
+  return ime.split(' ').map(function(w){ return w[0]; }).join('').toUpperCase().slice(0,2);
+}
+
+function toast(msg, dur) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, dur||2500);
+}
+
+async function api(path, opts) {
+  opts = opts || {};
+  opts.headers = opts.headers || {};
+  if (TOKEN) opts.headers['Authorization'] = 'Bearer ' + TOKEN;
+  opts.headers['Content-Type'] = opts.headers['Content-Type'] || 'application/json';
+  var res = await fetch(API + '/api' + path, opts);
+  return res;
+}
+
+// ======= LOGIN =======
+async function doLogin() {
+  var user = document.getElementById('inp-user').value.trim();
+  var pass = document.getElementById('inp-pass').value;
+  var btn = document.getElementById('btn-login');
+  var errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  if (!user || !pass) { errEl.textContent='Unesite korisničko ime i lozinku'; errEl.style.display='block'; return; }
+  btn.textContent = 'Prijava...'; btn.disabled = true;
+  try {
+    var res = await fetch(API + '/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: user, password: pass })
+    });
+    var data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Greška');
+    TOKEN = data.token;
+    USER = data.user;
+    localStorage.setItem('er_token', TOKEN);
+    localStorage.setItem('er_user', JSON.stringify(USER));
+    initApp();
+  } catch(e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+  }
+  btn.textContent = 'Prijava'; btn.disabled = false;
+}
+
+document.getElementById('inp-pass').addEventListener('keydown', function(e){ if(e.key==='Enter') doLogin(); });
+document.getElementById('inp-user').addEventListener('keydown', function(e){ if(e.key==='Enter') document.getElementById('inp-pass').focus(); });
+
+function doLogout() {
+  TOKEN = null; USER = null;
+  localStorage.removeItem('er_token');
+  localStorage.removeItem('er_user');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('screen-login').style.display = 'flex';
+  document.getElementById('inp-user').value = '';
+  document.getElementById('inp-pass').value = '';
+}
+
+function initApp() {
+  document.getElementById('screen-login').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('topbar-user').textContent = USER.ime;
+
+  if (USER.role === 'admin') {
+    document.getElementById('view-admin').style.display = 'block';
+    document.getElementById('datum-filter').value = danas();
+    var od = new Date(); od.setDate(1);
+    document.getElementById('exp-od').value = od.toISOString().split('T')[0];
+    document.getElementById('exp-do').value = danas();
+    loadPregled();
+  } else {
+    document.getElementById('view-radnik').style.display = 'block';
+    document.getElementById('hello-name').textContent = 'Dobro jutro, ' + USER.ime.split(' ')[0] + '!';
+    document.getElementById('hello-date').textContent = formatDatum(new Date());
+    loadMojStatus();
+  }
+}
+
+// ======= RADNIK =======
+async function loadMojStatus() {
+  try {
+    var res = await api('/javljanje');
+    var data = await res.json();
+    var today = Array.isArray(data) ? data[0] : null;
+    if (today) {
+      prikaziStatus(today.status, today.created_at);
+      currentJavljanjeId = today.id;
+    }
+    loadMojeDoznake();
+  } catch(e) { console.error(e); }
+}
+
+function prikaziStatus(status, time) {
+  var el = document.getElementById('status-display');
+  var timeEl = document.getElementById('status-time');
+  var uploadSec = document.getElementById('upload-section');
+  if (status === 'dosao') {
+    el.className = 'status-badge sb-green';
+    el.innerHTML = '<span>✅ Na poslu ste</span>';
+    document.getElementById('btn-dosao').classList.add('selected');
+    uploadSec.style.display = 'none';
+  } else if (status === 'bolovanje') {
+    el.className = 'status-badge sb-amber';
+    el.innerHTML = '<span>🟡 Na bolovanju</span>';
+    document.getElementById('btn-bolovanje').classList.add('selected');
+    uploadSec.style.display = 'block';
+  }
+  if (time) {
+    var t = new Date(time);
+    timeEl.textContent = 'Evidentirano u ' + t.toLocaleTimeString('hr-HR', {hour:'2-digit', minute:'2-digit'});
+  }
+}
+
+async function javiSe(status) {
+  try {
+    var res = await api('/javljanje', {
+      method: 'POST',
+      body: JSON.stringify({ status: status })
+    });
+    var data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    currentJavljanjeId = data.data?.id;
+    prikaziStatus(status, new Date().toISOString());
+    toast(status === 'dosao' ? '✅ Javljanje zabilježeno!' : '🟡 Bolovanje prijavljeno!');
+  } catch(e) {
+    toast('Greška: ' + e.message);
+  }
+}
+
+function onFileSelect(inp) {
+  if (!inp.files[0]) return;
+  var f = inp.files[0];
+  if (f.size > 5 * 1024 * 1024) { toast('Datoteka je prevelika (max 5 MB)'); return; }
+  selectedFile = f;
+  document.getElementById('file-name').textContent = f.name;
+  document.getElementById('file-preview').style.display = 'flex';
+  document.getElementById('btn-upload').style.display = 'block';
+}
+
+async function uploadDoznaka() {
+  if (!selectedFile) return;
+  var btn = document.getElementById('btn-upload');
+  btn.textContent = 'Šaljem...'; btn.disabled = true;
+  try {
+    var b64 = await new Promise(function(res, rej) {
+      var r = new FileReader();
+      r.onload = function(){ res(r.result.split(',')[1]); };
+      r.onerror = rej;
+      r.readAsDataURL(selectedFile);
+    });
+    var res = await api('/doznake', {
+      method: 'POST',
+      body: JSON.stringify({
+        fileName: selectedFile.name,
+        fileType: selectedFile.type,
+        fileData: b64,
+        javljanje_id: currentJavljanjeId
+      })
+    });
+    var data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    toast('✅ Doznaka poslana!');
+    selectedFile = null;
+    document.getElementById('file-preview').style.display = 'none';
+    btn.style.display = 'none';
+    document.getElementById('file-inp').value = '';
+    loadMojeDoznake();
+  } catch(e) {
+    toast('Greška: ' + e.message);
+  }
+  btn.textContent = 'Pošalji doznaku'; btn.disabled = false;
+}
+
+async function loadMojeDoznake() {
+  try {
+    var res = await api('/doznake');
+    var data = await res.json();
+    var el = document.getElementById('moje-doznake');
+    if (!data.length) { el.innerHTML = ''; return; }
+    el.innerHTML = '<div style="font-size:13px;font-weight:600;color:var(--gray-mid);margin:12px 0 6px;">Vaše doznake</div>' +
+      data.map(function(d) {
+        return '<div class="doznaka-item"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/></svg>' +
+          '<a href="' + d.public_url + '" target="_blank">' + d.naziv_datoteke + '</a>' +
+          '<span>' + d.datum + '</span></div>';
+      }).join('');
+  } catch(e) {}
+}
+
+// ======= ADMIN =======
+function adminTab(tab, btn) {
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  document.getElementById('admin-pregled').style.display = tab==='pregled' ? 'block' : 'none';
+  document.getElementById('admin-radnici').style.display = tab==='radnici' ? 'block' : 'none';
+  document.getElementById('admin-export').style.display = tab==='export' ? 'block' : 'none';
+  if (tab === 'radnici') loadRadniciManage();
+}
+
+async function loadPregled() {
+  var datum = document.getElementById('datum-filter').value || danas();
+  document.getElementById('pregled-list').innerHTML = '<div class="loader">Učitavanje...</div>';
+  try {
+    var res = await api('/admin/pregled?datum=' + datum);
+    var data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+
+    var dosli = data.filter(function(r){ return r.status==='dosao'; }).length;
+    var bolo = data.filter(function(r){ return r.status==='bolovanje'; }).length;
+    var nema = data.filter(function(r){ return r.status==='nije'; }).length;
+    document.getElementById('st-dosli').textContent = dosli;
+    document.getElementById('st-bolo').textContent = bolo;
+    document.getElementById('st-nema').textContent = nema;
+
+    if (!data.length) {
+      document.getElementById('pregled-list').innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg><p>Nema podataka za odabrani datum</p></div>';
+      return;
+    }
+
+    document.getElementById('pregled-list').innerHTML = data.map(function(r, i) {
+      var pillCls = r.status==='dosao' ? 'pill-green' : r.status==='bolovanje' ? 'pill-amber' : 'pill-red';
+      var pillTxt = r.status==='dosao' ? 'Na poslu' : r.status==='bolovanje' ? 'Bolovanje' : 'Nema javljanja';
+      var avCls = r.status==='dosao' ? 'av-green' : r.status==='bolovanje' ? 'av-amber' : 'av-red';
+      var time = r.javljanje_time ? new Date(r.javljanje_time).toLocaleTimeString('hr-HR',{hour:'2-digit',minute:'2-digit'}) : '';
+      var doznakeHtml = '';
+      if (r.doznake && r.doznake.length) {
+        doznakeHtml = r.doznake.map(function(d){
+          return '<a class="doznaka-link" href="' + d.public_url + '" target="_blank"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/></svg><span>' + d.naziv_datoteke + '</span></a>';
+        }).join('');
+      }
+      var hasExpand = doznakeHtml.length > 0;
+      return '<div class="radnik-row" style="flex-wrap:wrap;">' +
+        '<div class="radnik-av ' + avCls + '">' + initials(r.ime) + '</div>' +
+        '<div class="radnik-info"><div class="radnik-ime">' + r.ime + '</div><div class="radnik-sub">' + (time ? 'Javio se u ' + time : 'Nije se javio/la') + '</div></div>' +
+        '<span class="pill ' + pillCls + '">' + pillTxt + '</span>' +
+        (hasExpand ? '<button class="expand-btn" onclick="toggleExpand(this)">▼</button>' : '') +
+        (hasExpand ? '<div class="expand-content" style="width:100%;">' + doznakeHtml + '</div>' : '') +
+      '</div>';
+    }).join('');
+  } catch(e) {
+    document.getElementById('pregled-list').innerHTML = '<div class="empty-state"><p>Greška pri učitavanju: ' + e.message + '</p></div>';
+  }
+}
+
+function toggleExpand(btn) {
+  var row = btn.closest('.radnik-row');
+  var exp = row.querySelector('.expand-content');
+  if (exp.style.display === 'block') { exp.style.display='none'; btn.textContent='▼'; }
+  else { exp.style.display='block'; btn.textContent='▲'; }
+}
+
+async function loadRadniciManage() {
+  document.getElementById('radnici-manage-list').innerHTML = '<div class="loader">Učitavanje...</div>';
+  try {
+    var res = await api('/admin/radnici');
+    var data = await res.json();
+    if (!data.length) { document.getElementById('radnici-manage-list').innerHTML='<div class="empty-state"><p>Nema radnika</p></div>'; return; }
+    document.getElementById('radnici-manage-list').innerHTML = data.map(function(r){
+      return '<div class="radnik-manage-row">' +
+        '<div class="radnik-av av-blue">' + initials(r.ime) + '</div>' +
+        '<div class="radnik-info"><div class="radnik-ime">' + r.ime + '</div><div class="radnik-sub">@' + r.username + ' · ' + (r.role==='admin'?'Admin':'Radnik') + '</div></div>' +
+        (r.username !== USER.username ? '<button class="btn-del" onclick="brisiRadnika(\''+r.id+'\')">Ukloni</button>' : '<span style="font-size:12px;color:var(--gray-mid);">Vi</span>') +
+      '</div>';
+    }).join('');
+  } catch(e) {
+    document.getElementById('radnici-manage-list').innerHTML = '<div class="empty-state"><p>Greška: ' + e.message + '</p></div>';
+  }
+}
+
+async function dodajRadnika() {
+  var ime = document.getElementById('new-ime').value.trim();
+  var user = document.getElementById('new-user').value.trim();
+  var pass = document.getElementById('new-pass').value;
+  var role = document.getElementById('new-role').value;
+  if (!ime || !user || !pass) { toast('Popunite sva polja'); return; }
+  if (pass.length < 6) { toast('Lozinka mora imati min. 6 znakova'); return; }
+  try {
+    var res = await api('/admin/radnici', { method:'POST', body: JSON.stringify({ime,username:user,password:pass,role}) });
+    var data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    toast('✅ Radnik dodan!');
+    document.getElementById('new-ime').value = '';
+    document.getElementById('new-user').value = '';
+    document.getElementById('new-pass').value = '';
+    loadRadniciManage();
+  } catch(e) { toast('Greška: ' + e.message); }
+}
+
+async function brisiRadnika(id) {
+  if (!confirm('Jeste li sigurni da želite ukloniti ovog radnika?')) return;
+  try {
+    var res = await api('/admin/radnici/' + id, { method:'DELETE' });
+    if (!res.ok) throw new Error('Greška');
+    toast('Radnik uklonjen');
+    loadRadniciManage();
+  } catch(e) { toast('Greška: ' + e.message); }
+}
+
+async function downloadExport() {
+  var od = document.getElementById('exp-od').value;
+  var do_ = document.getElementById('exp-do').value;
+  if (!od || !do_) { toast('Odaberite period'); return; }
+  toast('Generiranje excela...');
+  var res = await fetch(API + '/api/admin/export?od=' + od + '&do=' + do_, {
+    headers: { 'Authorization': 'Bearer ' + TOKEN }
+  });
+  if (!res.ok) { toast('Greška pri exportu'); return; }
+  var blob = await res.blob();
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = 'evidencija_' + od + '_' + do_ + '.xlsx'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Auto-login ako ima token
+if (TOKEN && USER) { initApp(); } else { document.getElementById('screen-login').style.display = 'flex'; }
+</script>
+</body>
+</html>
