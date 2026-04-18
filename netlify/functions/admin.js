@@ -28,7 +28,7 @@ exports.handler = async (event) => {
   if (event.httpMethod === 'GET' && path === 'radnici') {
     const { data, error } = await supabase
       .from('radnici')
-      .select('id, username, ime, role, active, created_at')
+      .select('id, username, ime, role, active, mobitel, adresa, created_at')
       .order('ime');
     if (error) return { statusCode: 500, headers, body: JSON.stringify({ error: error.message }) };
     return { statusCode: 200, headers, body: JSON.stringify(data) };
@@ -39,7 +39,7 @@ exports.handler = async (event) => {
     const datum = event.queryStringParameters?.datum || new Date().toISOString().split('T')[0];
     const { data: sviRadnici } = await supabase
       .from('radnici')
-      .select('id, ime, username')
+      .select('id, ime, username, mobitel, adresa')
       .eq('role', 'radnik')
       .eq('active', true)
       .order('ime');
@@ -61,6 +61,8 @@ exports.handler = async (event) => {
         ...r,
         status: javljanje?.status || 'nije',
         javljanje_time: javljanje?.created_at || null,
+        mobitel: r.mobitel || null,
+        adresa: r.adresa || null,
         doznake: dozn
       };
     });
