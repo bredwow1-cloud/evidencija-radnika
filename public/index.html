@@ -156,6 +156,18 @@
   .empty-state svg { width: 48px; height: 48px; fill: #d1d5db; margin-bottom: 8px; }
   .empty-state p { font-size: 14px; }
 
+  /* ======= PROFIL EKRAN ======= */
+  .profil-card { background: white; border-radius: var(--radius); padding: 1.25rem; border: 1px solid var(--border); margin-bottom: 1rem; box-shadow: var(--shadow); }
+  .profil-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .profil-card p { font-size: 13px; color: var(--gray-mid); margin-bottom: 1rem; }
+  .profil-field { margin-bottom: 12px; }
+  .profil-field label { display: block; font-size: 13px; font-weight: 500; color: #374151; margin-bottom: 6px; }
+  .profil-field input { width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-size: 15px; outline: none; transition: border 0.2s; background: #fff; color: #111; }
+  .profil-field input:focus { border-color: var(--blue); }
+  .btn-spremi { width: 100%; padding: 12px; background: var(--blue); color: white; border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; cursor: pointer; }
+  .profil-popunjen { background: var(--green-light); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; color: var(--green); margin-bottom: 1rem; display: flex; align-items: center; gap: 8px; }
+  .profil-warn { background: var(--amber-light); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; color: var(--amber); margin-bottom: 1rem; display: flex; align-items: center; gap: 8px; }
+
   @media (max-width: 400px) {
     .action-btns { grid-template-columns: 1fr; }
     .form-row { grid-template-columns: 1fr; }
@@ -243,6 +255,22 @@
         </div>
         <button class="btn-upload" id="btn-upload" onclick="uploadDoznaka()">Pošalji doznaku</button>
         <div class="doznake-list" id="moje-doznake"></div>
+      </div>
+
+      <!-- PROFIL SEKCIJA -->
+      <div class="profil-card" id="profil-section">
+        <h3>Moji podaci</h3>
+        <p>Molimo unesite vaš broj mobitela i adresu stanovanja.</p>
+        <div id="profil-status"></div>
+        <div class="profil-field">
+          <label>Broj mobitela</label>
+          <input type="tel" id="inp-mobitel" placeholder="+385 91 234 5678" inputmode="tel">
+        </div>
+        <div class="profil-field">
+          <label>Adresa stanovanja</label>
+          <input type="text" id="inp-adresa" placeholder="Ulica i broj, Grad">
+        </div>
+        <button class="btn-spremi" onclick="spremiProfil()">Spremi podatke</button>
       </div>
     </div>
 
@@ -419,7 +447,41 @@ async function loadMojStatus() {
       currentJavljanjeId = today.id;
     }
     loadMojeDoznake();
+    loadProfil();
   } catch(e) { console.error(e); }
+}
+
+async function loadProfil() {
+  try {
+    var res = await api('/profil');
+    var data = await res.json();
+    var statusEl = document.getElementById('profil-status');
+    if (data.mobitel && data.adresa) {
+      document.getElementById('inp-mobitel').value = data.mobitel;
+      document.getElementById('inp-adresa').value = data.adresa;
+      statusEl.innerHTML = '<div class="profil-popunjen">✅ Podaci su spremljeni</div>';
+    } else {
+      statusEl.innerHTML = '<div class="profil-warn">⚠️ Molimo unesite vaš mobitel i adresu</div>';
+    }
+  } catch(e) { console.error(e); }
+}
+
+async function spremiProfil() {
+  var mobitel = document.getElementById('inp-mobitel').value.trim();
+  var adresa = document.getElementById('inp-adresa').value.trim();
+  if (!mobitel || !adresa) { toast('Unesite mobitel i adresu'); return; }
+  try {
+    var res = await api('/profil', {
+      method: 'PATCH',
+      body: JSON.stringify({ mobitel, adresa })
+    });
+    var data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    toast('✅ Podaci spremljeni!');
+    document.getElementById('profil-status').innerHTML = '<div class="profil-popunjen">✅ Podaci su spremljeni</div>';
+  } catch(e) {
+    toast('Greška: ' + e.message);
+  }
 }
 
 function prikaziStatus(status, time) {
@@ -559,13 +621,22 @@ async function loadPregled() {
           return '<a class="doznaka-link" href="' + d.public_url + '" target="_blank"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/></svg><span>' + d.naziv_datoteke + '</span></a>';
         }).join('');
       }
-      var hasExpand = doznakeHtml.length > 0;
+      var kontaktHtml = '';
+      if (r.mobitel || r.adresa) {
+        kontaktHtml += '<div style="padding:8px 0; font-size:13px;">';
+        if (r.mobitel) kontaktHtml += '<div style="margin-bottom:4px;"><span style="color:var(--gray-mid);">Mobitel: </span><a href="tel:' + r.mobitel + '" style="color:var(--blue);font-weight:500;">' + r.mobitel + '</a></div>';
+        if (r.adresa) kontaktHtml += '<div><span style="color:var(--gray-mid);">Adresa: </span><span style="font-weight:500;">' + r.adresa + '</span></div>';
+        kontaktHtml += '</div>';
+      } else {
+        kontaktHtml = '<div style="font-size:12px;color:var(--gray-mid);padding:6px 0;">Radnik nije unio kontakt podatke</div>';
+      }
+      var hasExpand = doznakeHtml.length > 0 || true;
       return '<div class="radnik-row" style="flex-wrap:wrap;">' +
         '<div class="radnik-av ' + avCls + '">' + initials(r.ime) + '</div>' +
         '<div class="radnik-info"><div class="radnik-ime">' + r.ime + '</div><div class="radnik-sub">' + (time ? 'Javio se u ' + time : 'Nije se javio/la') + '</div></div>' +
         '<span class="pill ' + pillCls + '">' + pillTxt + '</span>' +
-        (hasExpand ? '<button class="expand-btn" onclick="toggleExpand(this)">▼</button>' : '') +
-        (hasExpand ? '<div class="expand-content" style="width:100%;">' + doznakeHtml + '</div>' : '') +
+        '<button class="expand-btn" onclick="toggleExpand(this)">▼</button>' +
+        '<div class="expand-content" style="width:100%;">' + kontaktHtml + doznakeHtml + '</div>' +
       '</div>';
     }).join('');
   } catch(e) {
